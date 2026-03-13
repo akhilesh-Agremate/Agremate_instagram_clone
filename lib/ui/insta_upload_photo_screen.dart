@@ -1,100 +1,96 @@
-import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image/image.dart' as Im;
 import 'package:instagram_clone/resources/repository.dart';
 import 'package:instagram_clone/ui/insta_home_screen.dart';
-import 'package:location/location.dart';
-import 'package:flutter/services.dart';
-import 'package:geocoder/geocoder.dart';
-import 'package:image/image.dart' as Im;
+import 'package:location/location.dart' as loc;                      // Alias added
+import 'package:geocoding/geocoding.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:math';
 
 class InstaUploadPhotoScreen extends StatefulWidget {
-   File imageFile;
-  InstaUploadPhotoScreen({this.imageFile});
+  final File? imageFile;
+
+  const InstaUploadPhotoScreen({Key? key, this.imageFile}) : super(key: key);
 
   @override
   _InstaUploadPhotoScreenState createState() => _InstaUploadPhotoScreenState();
 }
 
 class _InstaUploadPhotoScreenState extends State<InstaUploadPhotoScreen> {
-  var _locationController;
-  var _captionController;
+  late TextEditingController _locationController;
+  late TextEditingController _captionController;
   final _repository = Repository();
+  bool _visibility = true;
+  File? _imageFile;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _locationController = TextEditingController();
     _captionController = TextEditingController();
+    _imageFile = widget.imageFile;
   }
 
   @override
   void dispose() {
+    _locationController.dispose();
+    _captionController.dispose();
     super.dispose();
-    _locationController?.dispose();
-    _captionController?.dispose();
   }
 
-  
-
-
-  bool _visibility = true;
-
   void _changeVisibility(bool visibility) {
-    setState(() {
-      _visibility = visibility;
-    });
+    setState(() => _visibility = visibility);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('New Post'),
-        backgroundColor: new Color(0xfff8faf8),
+        title: const Text('New Post'),
+        backgroundColor: const Color(0xfff8faf8),
         elevation: 1.0,
         actions: <Widget>[
           Padding(
             padding: const EdgeInsets.only(right: 20.0, top: 20.0),
             child: GestureDetector(
-              child: Text('Share',
-                  style: TextStyle(color: Colors.blue, fontSize: 16.0)),
-              onTap: () {
-                // To show the CircularProgressIndicator
+              onTap: () async {
                 _changeVisibility(false);
-
-                _repository.getCurrentUser().then((currentUser) {
-                  if (currentUser != null) {
-                    compressImage();
-                    _repository.retrieveUserDetails(currentUser).then((user) {
-                      _repository
-                        .uploadImageToStorage(widget.imageFile)
-                        .then((url) {
-                      _repository
-                          .addPostToDb(user, url,
-                              _captionController.text, _locationController.text)
-                          .then((value) {
-                        print("Post added to db");
-                        Navigator.pushReplacement(context, MaterialPageRoute(
-                          builder: ((context) => InstaHomeScreen())
-                        ));
-                      }).catchError((e) =>
-                              print("Error adding current post to db : $e"));
-                    }).catchError((e) {
-                      print("Error uploading image to storage : $e");
-                    });
-                    });
-                    
-                  } else {
-                    print("Current User is null");
-                  }
-                });
+                final currentUser = await _repository.getCurrentUser();
+                if (currentUser == null) {
+                  print("Current User is null");
+                  return;
+                }
+                await compressImage();
+                final user =
+                await _repository.retrieveUserDetails(currentUser);
+                final url =
+                await _repository.uploadImageToStorage(_imageFile!);
+                await _repository
+                    .addPostToDb(
+                  user,
+                  url,
+                  _captionController.text,
+                  _locationController.text,
+                )
+                    .catchError(
+                        (e) => print("Error adding post to db: $e"));
+                print("Post added to db");
+                if (!mounted) return;
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const InstaHomeScreen(),
+                  ),
+                );
               },
+              child: const Text(
+                'Share',
+                style: TextStyle(color: Colors.blue, fontSize: 16.0),
+              ),
             ),
-          )
+          ),
         ],
       ),
       body: Column(
@@ -107,144 +103,134 @@ class _InstaUploadPhotoScreenState extends State<InstaUploadPhotoScreen> {
                   width: 80.0,
                   height: 80.0,
                   decoration: BoxDecoration(
-                      image: DecorationImage(
-                          fit: BoxFit.cover,
-                          image: FileImage(widget.imageFile))),
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: FileImage(_imageFile!),
+                    ),
+                  ),
                 ),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 12.0, right: 8.0),
+                  padding:
+                  const EdgeInsets.only(left: 12.0, right: 8.0),
                   child: TextField(
                     controller: _captionController,
                     maxLines: 3,
                     keyboardType: TextInputType.multiline,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Write a caption...',
                     ),
-                    onChanged: ((value) {
-                      setState(() {
-                        _captionController.text = value;
-                      });
-                    }),
                   ),
                 ),
-              )
+              ),
             ],
           ),
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: TextField(
               controller: _locationController,
-              onChanged: ((value) {
-                setState(() {
-                  _locationController.text = value;
-                });
-              }),
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Add location',
               ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.only(left: 12.0),
-            child: FutureBuilder(
-                future: locateUser(),
-                builder: ((context, AsyncSnapshot<List<Address>> snapshot) {
-                  //  if (snapshot.hasData) {
-                  if (snapshot.hasData) {
-                    return Row(
-                      // alignment: WrapAlignment.start,
-                      children: <Widget>[
-                        GestureDetector(
-                          child: Chip(
-                            label: Text(snapshot.data.first.locality),
-                          ),
+            child: FutureBuilder<List<Placemark>>(
+              future: locateUser(),
+              builder: (context,
+                  AsyncSnapshot<List<Placemark>> snapshot) {
+                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                  final place = snapshot.data!.first;
+                  return Row(
+                    children: <Widget>[
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _locationController.text =
+                                place.locality ?? '';
+                          });
+                        },
+                        child: Chip(
+                          label: Text(place.locality ?? ''),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12.0),
+                        child: GestureDetector(
                           onTap: () {
                             setState(() {
                               _locationController.text =
-                                  snapshot.data.first.locality;
+                              '${place.subAdministrativeArea ?? ''}, ${place.subLocality ?? ''}';
                             });
                           },
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 12.0),
-                          child: GestureDetector(
-                            child: Chip(
-                              label: Text(snapshot.data.first.subAdminArea +
-                                  ", " +
-                                  snapshot.data.first.subLocality),
+                          child: Chip(
+                            label: Text(
+                              '${place.subAdministrativeArea ?? ''}, ${place.subLocality ?? ''}',
                             ),
-                            onTap: () {
-                              setState(() {
-                                _locationController.text =
-                                    snapshot.data.first.subAdminArea +
-                                        ", " +
-                                        snapshot.data.first.subLocality;
-                              });
-                            },
                           ),
                         ),
-                      ],
-                    );
-                  } else {
-                    print("Connection State : ${snapshot.connectionState}");
-                    return CircularProgressIndicator();
-                  }
-                })),
+                      ),
+                    ],
+                  );
+                }
+                print(
+                    "Connection State : ${snapshot.connectionState}");
+                return const CircularProgressIndicator();
+              },
+            ),
           ),
           Padding(
             padding: const EdgeInsets.only(top: 50.0),
-            child: Offstage(child: CircularProgressIndicator(), offstage: _visibility,),
-          )
+            child: Offstage(
+              offstage: _visibility,
+              child: const CircularProgressIndicator(),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  void compressImage() async {
+  Future<void> compressImage() async {
     print('starting compression');
     final tempDir = await getTemporaryDirectory();
     final path = tempDir.path;
-    int rand = Random().nextInt(10000);
+    final rand = Random().nextInt(10000);
 
-    Im.Image image = Im.decodeImage(widget.imageFile.readAsBytesSync());
-    Im.copyResize(image, 500);
+    final bytes = await _imageFile!.readAsBytes();
+    Im.Image? image = Im.decodeImage(bytes);
+    if (image == null) return;
 
-    var newim2 = new File('$path/img_$rand.jpg')
-      ..writeAsBytesSync(Im.encodeJpg(image, quality: 85));
+    final resized = Im.copyResize(image, width: 500);
 
-    setState(() {
-      widget.imageFile = newim2;
-    });
+    final newFile = File('$path/img_$rand.jpg')
+      ..writeAsBytesSync(Im.encodeJpg(resized, quality: 85));
+
+    setState(() => _imageFile = newFile);
     print('done');
   }
 
-  Future<List<Address>> locateUser() async {
-    LocationData currentLocation;
-    Future<List<Address>> addresses;
+  Future<List<Placemark>> locateUser() async {
+    final location = loc.Location();                                  // Used alias
 
-    var location = new Location();
-
-    // Platform messages may fail, so we use a try/catch PlatformException.
     try {
-      currentLocation = await location.getLocation();
-
+      final currentLocation = await location.getLocation();
       print(
           'LATITUDE : ${currentLocation.latitude} && LONGITUDE : ${currentLocation.longitude}');
 
-      // From coordinates
-      final coordinates =
-          new Coordinates(currentLocation.latitude, currentLocation.longitude);
-
-      addresses = Geocoder.local.findAddressesFromCoordinates(coordinates);
+      final placemarks = await placemarkFromCoordinates(
+        currentLocation.latitude!,
+        currentLocation.longitude!,
+      );
+      return placemarks;
     } on PlatformException catch (e) {
       print('ERROR : $e');
       if (e.code == 'PERMISSION_DENIED') {
         print('Permission denied');
       }
-      currentLocation = null;
+      return [];
     }
-    return addresses;
   }
 }

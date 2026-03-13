@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class InstaActivityScreen extends StatefulWidget {
+  const InstaActivityScreen({Key? key}) : super(key: key);
+
   @override
   _InstaActivityScreenState createState() => _InstaActivityScreenState();
 }
@@ -11,9 +13,9 @@ class _InstaActivityScreenState extends State<InstaActivityScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text('Activity'),
+        title: const Text('Activity'),       // Added const
       ),
-      body: Center(
+      body: const Center(                    // Added const
         child: Text('NOT IMPLEMENTED YET'),
       ),
     );

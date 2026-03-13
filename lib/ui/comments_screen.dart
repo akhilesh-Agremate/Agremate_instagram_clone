@@ -1,25 +1,30 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:instagram_clone/models/comment.dart';
-import 'package:instagram_clone/models/user.dart';
+import 'package:instagram_clone/models/user.dart' as model;
 
 class CommentsScreen extends StatefulWidget {
-  final DocumentReference documentReference;
-  final User user;
-  CommentsScreen({this.documentReference, this.user});
+  final DocumentReference? documentReference;
+  final model.User? user;
+
+  const CommentsScreen({
+    Key? key,
+    this.documentReference,
+    this.user,
+  }) : super(key: key);
 
   @override
   _CommentsScreenState createState() => _CommentsScreenState();
 }
 
 class _CommentsScreenState extends State<CommentsScreen> {
-  TextEditingController _commentController = TextEditingController();
-  var _formKey = GlobalKey<FormState>();
+  final TextEditingController _commentController = TextEditingController(); // Added final
+  final _formKey = GlobalKey<FormState>();                                  // Added final
 
   @override
   void dispose() {
+    _commentController.dispose();                                           // Moved before super
     super.dispose();
-    _commentController?.dispose();
   }
 
   @override
@@ -27,19 +32,16 @@ class _CommentsScreenState extends State<CommentsScreen> {
     return Scaffold(
       appBar: AppBar(
         elevation: 1,
-        backgroundColor: new Color(0xfff8faf8),
-        title: Text('Comments'),
+        backgroundColor: const Color(0xfff8faf8),                          // Added const
+        title: const Text('Comments'),
       ),
       body: Form(
         key: _formKey,
         child: Column(
           children: <Widget>[
             commentsListWidget(),
-            Divider(
-              height: 20.0,
-              color: Colors.grey,
-            ),
-            commentInputWidget()
+            const Divider(height: 20.0, color: Colors.grey),               // Added const
+            commentInputWidget(),
           ],
         ),
       ),
@@ -58,21 +60,24 @@ class _CommentsScreenState extends State<CommentsScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
             padding: const EdgeInsets.symmetric(vertical: 4.0),
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(40.0),
-                image:
-                    DecorationImage(image: NetworkImage(widget.user.photoUrl))),
+              borderRadius: BorderRadius.circular(40.0),
+              image: DecorationImage(
+                image: NetworkImage(widget.user?.photoUrl ?? ''),           // Null safety
+              ),
+            ),
           ),
           Flexible(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12.0),
               child: TextFormField(
-                validator: (String input) {
-                  if (input.isEmpty) {
+                validator: (String? input) {                                // Added ?
+                  if (input == null || input.isEmpty) {
                     return "Please enter comment";
                   }
+                  return null;                                              // Added return null
                 },
                 controller: _commentController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: "Add a comment...",
                 ),
                 onFieldSubmitted: (value) {
@@ -82,72 +87,66 @@ class _CommentsScreenState extends State<CommentsScreen> {
             ),
           ),
           GestureDetector(
-            child: Container(
-              margin: const EdgeInsets.only(right: 8.0),
-              child: Text('Post', style: TextStyle(color: Colors.blue)),
-            ),
             onTap: () {
-              if (_formKey.currentState.validate()) {
+              if (_formKey.currentState!.validate()) {                     // Added !
                 postComment();
               }
             },
-          )
+            child: Container(
+              margin: const EdgeInsets.only(right: 8.0),
+              child: const Text(
+                'Post',
+                style: TextStyle(color: Colors.blue),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  postComment() {
+  void postComment() {                                                      // Added return type
     var _comment = Comment(
-        comment: _commentController.text,
-        timeStamp: FieldValue.serverTimestamp(),
-        ownerName: widget.user.displayName,
-        ownerPhotoUrl: widget.user.photoUrl,
-        ownerUid: widget.user.uid);
-    widget.documentReference
+      comment: _commentController.text,
+      timeStamp: Timestamp.now(),                                          // FieldValue → Timestamp.now()
+      ownerName: widget.user?.displayName,
+      ownerPhotoUrl: widget.user?.photoUrl,
+      ownerUid: widget.user?.uid,
+    );
+    widget.documentReference!
         .collection("comments")
-        .document()
-        .setData(_comment.toMap(_comment)).whenComplete(() {
-          _commentController.text = "";
-        });
+        .doc()                                                             // .document() → .doc()
+        .set(_comment.toMap(_comment))                                     // .setData() → .set()
+        .whenComplete(() {
+      _commentController.text = "";
+    });
   }
 
   Widget commentsListWidget() {
-    print("Document Ref : ${widget.documentReference.path}");
+    print("Document Ref : ${widget.documentReference?.path}");
     return Flexible(
-      child: StreamBuilder(
-        stream: widget.documentReference
+      child: StreamBuilder<QuerySnapshot>(                                 // Added type
+        stream: widget.documentReference!
             .collection("comments")
             .orderBy('timestamp', descending: false)
             .snapshots(),
-        builder: ((context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          } else {
-            return ListView.builder(
-              itemCount: snapshot.data.documents.length,
-              itemBuilder: ((context, index) =>
-                  commentItem(snapshot.data.documents[index])),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
-        }),
+          return ListView.builder(
+            itemCount: snapshot.data!.docs.length,                        // .documents → .docs
+            itemBuilder: (context, index) =>
+                commentItem(snapshot.data!.docs[index]),
+          );
+        },
       ),
     );
   }
 
   Widget commentItem(DocumentSnapshot snapshot) {
-  //   var time;
-  //   List<String> dateAndTime;
-  //   print('${snapshot.data['timestamp'].toString()}');
-  //   if (snapshot.data['timestamp'].toString() != null) {
-  //       Timestamp timestamp =snapshot.data['timestamp'];
-  //  // print('${timestamp.seconds}');
-  //  // print('${timestamp.toDate()}');
-  //    time =timestamp.toDate().toString();
-  //    dateAndTime = time.split(" ");
-  //   }
-  
-    
+    final data = snapshot.data() as Map<String, dynamic>;                 // .data → .data()
+
     return Padding(
       padding: const EdgeInsets.all(12.0),
       child: Row(
@@ -155,25 +154,23 @@ class _CommentsScreenState extends State<CommentsScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 8.0),
             child: CircleAvatar(
-              backgroundImage: NetworkImage(snapshot.data['ownerPhotoUrl']),
+              backgroundImage: NetworkImage(data['ownerPhotoUrl'] ?? ''), // Null safety
               radius: 20,
             ),
           ),
-          SizedBox(
-            width: 15.0,
-          ),
+          const SizedBox(width: 15.0),
           Row(
             children: <Widget>[
-              Text(snapshot.data['ownerName'],
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  )),
+              Text(
+                data['ownerName'] ?? '',                                  // Null safety
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               Padding(
                 padding: const EdgeInsets.only(left: 8.0),
-                child: Text(snapshot.data['comment']),
+                child: Text(data['comment'] ?? ''),                       // Null safety
               ),
             ],
-          )
+          ),
         ],
       ),
     );
