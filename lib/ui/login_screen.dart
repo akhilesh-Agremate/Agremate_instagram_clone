@@ -4,72 +4,81 @@ import 'package:instagram_clone/resources/repository.dart';
 import 'package:instagram_clone/ui/insta_home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  var _repository = Repository();
+  final _repository = Repository();                                     // var → final
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: new Color(0xfff8faf8),
-          centerTitle: true,
-          elevation: 1.0,
-          title: SizedBox(
-              height: 35.0, child: Image.asset("assets/insta_logo.png"))),
+        backgroundColor: const Color(0xfff8faf8),                      // Added const
+        centerTitle: true,
+        elevation: 1.0,
+        title: SizedBox(
+          height: 35.0,
+          child: Image.asset("assets/insta_logo.png"),
+        ),
+      ),
       body: Center(
         child: GestureDetector(
+          onTap: () async {
+            final user = await _repository.signIn();                   // async/await
+            if (user != null) {
+              await authenticateUser(user);
+            } else {
+              print("Error signing in");
+            }
+          },
           child: Container(
             width: 250.0,
             height: 50.0,
             decoration: BoxDecoration(
-                color: Color(0xFF4285F4),
-                border: Border.all(color: Colors.black)),
+              color: const Color(0xFF4285F4),
+              border: Border.all(color: Colors.black),
+            ),
             child: Row(
               children: <Widget>[
                 Image.asset('assets/google_icon.jpg'),
-                Padding(
-                  padding: const EdgeInsets.only(left: 20.0),
-                  child: Text('Sign in with Google',
-                      style: TextStyle(color: Colors.white, fontSize: 16.0)),
-                )
+                const Padding(
+                  padding: EdgeInsets.only(left: 20.0),
+                  child: Text(
+                    'Sign in with Google',
+                    style: TextStyle(color: Colors.white, fontSize: 16.0),
+                  ),
+                ),
               ],
             ),
           ),
-          onTap: () {
-            _repository.signIn().then((user) {
-              if (user != null) {
-                authenticateUser(user);
-              } else {
-                print("Error");
-              }
-            });
-          },
         ),
       ),
     );
   }
 
-  void authenticateUser(FirebaseUser user) {
+  Future<void> authenticateUser(User user) async {                     // FirebaseUser → User
     print("Inside Login Screen -> authenticateUser");
-    _repository.authenticateUser(user).then((value) {
-      if (value) {
-        print("VALUE : $value");
-        print("INSIDE IF");
-        _repository.addDataToDb(user).then((value) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
-            return InstaHomeScreen();
-          }));
-        });
-      } else {
-        print("INSIDE ELSE");
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
-          return InstaHomeScreen();
-        }));
-      }
-    });
+    final isNewUser = await _repository.authenticateUser(user);
+
+    if (!mounted) return;                                              // mounted check
+
+    if (isNewUser) {
+      print("New user — adding to db");
+      await _repository.addDataToDb(user);
+    } else {
+      print("Existing user — skipping db write");
+    }
+
+    if (!mounted) return;                                              // mounted check after await
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const InstaHomeScreen(),
+      ),
+    );
   }
 }

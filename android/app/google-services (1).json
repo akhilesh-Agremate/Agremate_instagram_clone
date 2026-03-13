@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "989652634748",
+    "project_id": "instagram-dac82",
+    "storage_bucket": "instagram-dac82.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989652634748:android:ef8d41a483d4025839cdf9",
+        "android_client_info": {
+          "package_name": "com.example.instagramclone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "989652634748-pkmd3sf32reh5nklppfpdv5o1ikjn1hn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9BWTt3wWi3a5TZSXUfIqy7sxMxXJwT0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "989652634748-pkmd3sf32reh5nklppfpdv5o1ikjn1hn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

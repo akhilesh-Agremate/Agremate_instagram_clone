@@ -4,69 +4,121 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instagram_clone/models/message.dart';
-import 'package:instagram_clone/models/user.dart';
+import 'package:instagram_clone/models/user.dart' as model;
 import 'package:instagram_clone/resources/firebase_provider.dart';
 
 class Repository {
-
   final _firebaseProvider = FirebaseProvider();
 
-  Future<void> addDataToDb(FirebaseUser user) => _firebaseProvider.addDataToDb(user);
-  
-  Future<FirebaseUser> signIn() => _firebaseProvider.signIn();
-  
-  Future<bool> authenticateUser(FirebaseUser user) => _firebaseProvider.authenticateUser(user);
+  Future<void> addDataToDb(User user) =>                                  // FirebaseUser → User
+  _firebaseProvider.addDataToDb(user);
 
-  Future<FirebaseUser> getCurrentUser() => _firebaseProvider.getCurrentUser();
+  Future<User?> signIn() =>                                               // FirebaseUser → User?
+  _firebaseProvider.signIn();
 
-  Future<void> signOut() => _firebaseProvider.signOut();
+  Future<bool> authenticateUser(User user) =>                             // FirebaseUser → User
+  _firebaseProvider.authenticateUser(user);
 
-  Future<String> uploadImageToStorage(File imageFile) => _firebaseProvider.uploadImageToStorage(imageFile);
+  Future<User?> getCurrentUser() =>                                       // FirebaseUser → User?
+  _firebaseProvider.getCurrentUser();
 
-  Future<void> addPostToDb(User currentUser, String imgUrl, String caption, String location) => _firebaseProvider.addPostToDb(currentUser, imgUrl, caption, location);
-  
-  Future<User> retrieveUserDetails(FirebaseUser user) => _firebaseProvider.retrieveUserDetails(user);
+  Future<void> signOut() =>
+      _firebaseProvider.signOut();
 
-  Future<List<DocumentSnapshot>> retrieveUserPosts(String userId) => _firebaseProvider.retrieveUserPosts(userId);
+  Future<String> uploadImageToStorage(File imageFile) =>
+      _firebaseProvider.uploadImageToStorage(imageFile);
 
-  Future<List<DocumentSnapshot>> fetchPostComments(DocumentReference reference) => _firebaseProvider.fetchPostCommentDetails(reference);
+  Future<void> addPostToDb(
+      model.User currentUser,                                               // Aliased to avoid clash
+      String imgUrl,
+      String caption,
+      String location,
+      ) => _firebaseProvider.addPostToDb(currentUser, imgUrl, caption, location);
 
-  Future<List<DocumentSnapshot>> fetchPostLikes(DocumentReference reference) => _firebaseProvider.fetchPostLikeDetails(reference);
+  Future<model.User> retrieveUserDetails(User user) =>                   // FirebaseUser → User
+  _firebaseProvider.retrieveUserDetails(user);
 
-  Future<bool> checkIfUserLikedOrNot(String userId, DocumentReference reference) => _firebaseProvider.checkIfUserLikedOrNot(userId, reference);
+  Future<List<DocumentSnapshot>> retrieveUserPosts(String userId) =>
+      _firebaseProvider.retrieveUserPosts(userId);
 
-   Future<List<DocumentSnapshot>> retrievePosts(FirebaseUser user) => _firebaseProvider.retrievePosts(user);
+  Future<List<DocumentSnapshot>> fetchPostComments(
+      DocumentReference reference,
+      ) => _firebaseProvider.fetchPostCommentDetails(reference);
 
-  Future<List<String>> fetchAllUserNames(FirebaseUser user) => _firebaseProvider.fetchAllUserNames(user);
+  Future<List<DocumentSnapshot>> fetchPostLikes(
+      DocumentReference reference,
+      ) => _firebaseProvider.fetchPostLikeDetails(reference);
 
-  Future<String> fetchUidBySearchedName(String name) => _firebaseProvider.fetchUidBySearchedName(name);
+  Future<bool> checkIfUserLikedOrNot(
+      String userId,
+      DocumentReference reference,
+      ) => _firebaseProvider.checkIfUserLikedOrNot(userId, reference);
 
-  Future<User> fetchUserDetailsById(String uid) => _firebaseProvider.fetchUserDetailsById(uid);
+  Future<List<DocumentSnapshot>> retrievePosts(User user) =>             // FirebaseUser → User
+  _firebaseProvider.retrievePosts(user);
 
-  Future<void> followUser({String currentUserId, String followingUserId}) => _firebaseProvider.followUser(currentUserId: currentUserId, followingUserId: followingUserId);
+  Future<List<String>> fetchAllUserNames(User user) =>                   // FirebaseUser → User
+  _firebaseProvider.fetchAllUserNames(user);
 
-  Future<void> unFollowUser({String currentUserId, String followingUserId}) => _firebaseProvider.unFollowUser(currentUserId: currentUserId, followingUserId: followingUserId);
+  Future<String?> fetchUidBySearchedName(String name) =>                 // String → String?
+  _firebaseProvider.fetchUidBySearchedName(name);
 
-  Future<bool> checkIsFollowing(String name, String currentUserId) => _firebaseProvider.checkIsFollowing(name, currentUserId);
+  Future<model.User> fetchUserDetailsById(String uid) =>
+      _firebaseProvider.fetchUserDetailsById(uid);
 
-  Future<List<DocumentSnapshot>> fetchStats({String uid, String label}) => _firebaseProvider.fetchStats(uid: uid, label: label);
+  Future<void> followUser({
+    String? currentUserId,                                                // Added ?
+    String? followingUserId,                                              // Added ?
+  }) => _firebaseProvider.followUser(
+    currentUserId: currentUserId,
+    followingUserId: followingUserId,
+  );
 
-  Future<void> updatePhoto(String photoUrl, String uid) => _firebaseProvider.updatePhoto(photoUrl, uid);
+  Future<void> unFollowUser({
+    String? currentUserId,                                                // Added ?
+    String? followingUserId,                                              // Added ?
+  }) => _firebaseProvider.unFollowUser(
+    currentUserId: currentUserId,
+    followingUserId: followingUserId,
+  );
 
-  Future<void> updateDetails(String uid, String name, String bio, String email, String phone) => _firebaseProvider.updateDetails(uid, name, bio, email, phone);
+  Future<bool> checkIsFollowing(String name, String currentUserId) =>
+      _firebaseProvider.checkIsFollowing(name, currentUserId);
 
-  Future<List<String>> fetchUserNames(FirebaseUser user) => _firebaseProvider.fetchUserNames(user);
+  Future<List<DocumentSnapshot>> fetchStats({
+    String? uid,                                                          // Added ?
+    String? label,                                                        // Added ?
+  }) => _firebaseProvider.fetchStats(uid: uid, label: label);
 
-  Future<List<User>> fetchAllUsers(FirebaseUser user) => _firebaseProvider.fetchAllUsers(user);
+  Future<void> updatePhoto(String photoUrl, String uid) =>
+      _firebaseProvider.updatePhoto(photoUrl, uid);
 
-  void uploadImageMsgToDb(String url, String receiverUid, String senderuid) => _firebaseProvider.uploadImageMsgToDb(url, receiverUid, senderuid);
+  Future<void> updateDetails(
+      String uid,
+      String name,
+      String bio,
+      String email,
+      String phone,
+      ) => _firebaseProvider.updateDetails(uid, name, bio, email, phone);
 
-  Future<void> addMessageToDb(Message message, String receiverUid) => _firebaseProvider.addMessageToDb(message, receiverUid);
+  Future<List<String>> fetchUserNames(User user) =>                      // FirebaseUser → User
+  _firebaseProvider.fetchUserNames(user);
 
-  Future<List<DocumentSnapshot>> fetchFeed(FirebaseUser user) => _firebaseProvider.fetchFeed(user);
+  Future<List<model.User>> fetchAllUsers(User user) =>                   // FirebaseUser → User
+  _firebaseProvider.fetchAllUsers(user);
 
-  Future<List<String>> fetchFollowingUids(FirebaseUser user) => _firebaseProvider.fetchFollowingUids(user);
+  void uploadImageMsgToDb(
+      String url,
+      String receiverUid,
+      String senderUid,
+      ) => _firebaseProvider.uploadImageMsgToDb(url, receiverUid, senderUid);
 
-  //Future<List<DocumentSnapshot>> retrievePostByUID(String uid) => _firebaseProvider.retrievePostByUID(uid);
+  Future<void> addMessageToDb(Message message, String receiverUid) =>
+      _firebaseProvider.addMessageToDb(message, receiverUid);
 
+  Future<List<DocumentSnapshot>> fetchFeed(User user) =>                 // FirebaseUser → User
+  _firebaseProvider.fetchFeed(user);
+
+  Future<List<String>> fetchFollowingUids(User user) =>                  // FirebaseUser → User
+  _firebaseProvider.fetchFollowingUids(user);
 }
